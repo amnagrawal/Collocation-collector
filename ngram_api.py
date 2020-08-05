@@ -1,14 +1,15 @@
 import pandas as pd
 import os, sys
+import string
 
-import aiohttp
 import asyncio
 from aiohttp import ClientSession
 
 
-from utils import build_query, get_response, nounNounFinder, run_query
+from utils import run_query
 
 read_dir = ["./adjNoun", "./verbNoun"]
+write_dir = "./nounNoun"
 
 
 def getfiles(dir):
@@ -30,17 +31,17 @@ data = pd.read_csv(filename, delimiter=',')
 sources = data.identified_sources
 
 tokens = set()
-# for file in adj_noun_files:
-#     nouns = list(pd.read_csv(file, delimiter='\t').iloc[:, 2])
-#     for noun in nouns:
-#         noun = str(noun).lower()
-#         tokens.add(noun)
-#
-# for file in verb_noun_files:
-#     nouns = list(pd.read_csv(file, delimiter='\t').iloc[:, 2])
-#     for noun in nouns:
-#         noun = str(noun).lower()
-#         tokens.add(noun)
+for file in adj_noun_files:
+    nouns = list(pd.read_csv(file, delimiter='\t').iloc[:, 2])
+    for noun in nouns:
+        noun = str(noun).lower()
+        tokens.add(noun)
+
+for file in verb_noun_files:
+    nouns = list(pd.read_csv(file, delimiter='\t').iloc[:, 2])
+    for noun in nouns:
+        noun = str(noun).lower()
+        tokens.add(noun)
 
 for i, row in enumerate(sources):
     if not pd.isna(row):
@@ -51,6 +52,10 @@ for i, row in enumerate(sources):
 
 print(f'No of Tokens: {len(tokens)}')
 tokens = sorted(tokens)
+# starting_letters = ['w', 'x', 'y', 'z']
+# tokens = [token for token in tokens if str(token).startswith('w') or str(token).startswith('x')
+#           or str(token).startswith('y') or str(token).startswith('z')]
+# print(f'filtered tokens: {len(tokens)}')
 
 
 async def print_responses():
@@ -63,10 +68,17 @@ loop = asyncio.get_event_loop()
 bigrams = loop.run_until_complete(print_responses())
 loop.close()
 
-nounNounList = []
 
-print(len(nounNounList))
-with open('nounNoun.txt', 'w') as f:
-    for row in nounNounList:
-        f.write('\t'.join([str(i) for i in row]))
-        f.write('\n')
+ptr = 0
+starting_letters = string.ascii_lowercase
+for starting_letter in starting_letters:
+    with open(os.path.join(write_dir, 'nn_'+starting_letter+'.txt'), 'a') as f:
+        # for i, token in enumerate(tokens):
+        while ptr < len(tokens) and tokens[ptr].startswith(starting_letter):
+            if bigrams[ptr] and len(bigrams[ptr]):
+                for bigram in bigrams[ptr]:
+                    f.write('\t'.join([str(i) for i in bigram]))
+                    f.write('\n')
+            ptr += 1
+        print(f'file {starting_letter} written')
+
