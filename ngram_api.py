@@ -26,7 +26,6 @@ adj_noun_files = getfiles(read_dir[0])
 verb_noun_files = getfiles(read_dir[1])
 save_dir = "./nounNoun"
 filename = "./kmeans_nounNoun_essays_metaphors.csv"
-response_file = "response.txt"
 data = pd.read_csv(filename, delimiter=',')
 sources = data.identified_sources
 
@@ -58,27 +57,49 @@ tokens = sorted(tokens)
 # print(f'filtered tokens: {len(tokens)}')
 
 
-async def print_responses():
+async def get_responses(tokens):
     async with ClientSession() as session:
         result = await asyncio.gather(*[run_query(token, session) for token in tokens])
         return result
 
 
-loop = asyncio.get_event_loop()
-bigrams = loop.run_until_complete(print_responses())
-loop.close()
+# loop = asyncio.get_event_loop()
+# bigrams = loop.run_until_complete(get_responses())
+# loop.close()
 
 
 ptr = 0
 starting_letters = string.ascii_lowercase
+# starting_letters = ['a', 'b']
+bigrams_df = pd.DataFrame()
+loop = asyncio.get_event_loop()
 for starting_letter in starting_letters:
-    with open(os.path.join(write_dir, 'nn_'+starting_letter+'.txt'), 'a') as f:
-        # for i, token in enumerate(tokens):
-        while ptr < len(tokens) and tokens[ptr].startswith(starting_letter):
-            if bigrams[ptr] and len(bigrams[ptr]):
-                for bigram in bigrams[ptr]:
-                    f.write('\t'.join([str(i) for i in bigram]))
-                    f.write('\n')
+    queried_tokens = []
+    while ptr < len(tokens) and tokens[ptr].startswith(starting_letter):
+        queried_tokens.append(tokens[ptr])
+        ptr += 1
+
+    # bigrams.extend(loop.run_until_complete(get_responses(queried_tokens)))
+    bigrams = loop.run_until_complete(get_responses(queried_tokens))
+    for bigram in bigrams:
+        if bigram and len(bigram):
+            bigrams_df = bigrams_df.append(pd.DataFrame(bigram))
+    print(f'Starting letter: {starting_letter} done')
+loop.close()
+
+bigrams_df = bigrams_df.sort_values(by=[bigrams_df.columns[1], bigrams_df.columns[2]],
+                                    key=lambda col: col.str.lower())
+ptr = 0
+for starting_letter in starting_letters:
+    with open(os.path.join(write_dir, 'nn2_'+starting_letter+'.txt'), 'w') as f:
+        # while ptr < len(tokens) and tokens[ptr].startswith(starting_letter):
+        #     if bigrams[ptr] and len(bigrams[ptr]):
+        #         for bigram in bigrams[ptr]:
+        #             f.write('\t'.join([str(i) for i in bigram]))
+        #             f.write('\n')
+
+        while ptr < len(bigrams_df) and str(bigrams_df.iloc[ptr, 1]).startswith(starting_letter):
+            f.write('\t'.join([str(i) for i in bigrams_df.iloc[ptr]]))
+            f.write('\n')
             ptr += 1
         print(f'file {starting_letter} written')
-

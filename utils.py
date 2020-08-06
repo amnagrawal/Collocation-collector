@@ -1,5 +1,6 @@
 import urllib
 from nltk import word_tokenize, pos_tag
+import string
 
 
 def build_query(token):
@@ -45,7 +46,7 @@ def parse_response(response_text):
         frequency = response_text[1]
         sourceNoun, targetNoun = nounNounFinder(tagged)
         # To avoid rows with punctuations identified as nouns
-        if sourceNoun and len(sourceNoun) > 1 and len(targetNoun) > 1:
+        if sourceNoun and isValid(sourceNoun) and isValid(targetNoun):
             return frequency, sourceNoun, targetNoun, ' '.join(tokenized_text)
     except Exception as err:
         print(f'Exception occured in parse response: {err}')
@@ -53,6 +54,14 @@ def parse_response(response_text):
         pass
 
     return None, None, None, None
+
+
+def isValid(word):
+    alphabets = string.ascii_lowercase
+    if len(word) > 1 and (word[0] in alphabets):
+        return 1
+    else:
+        return 0
 
 
 def nounNounFinder(taggedText):
