@@ -5,7 +5,6 @@ import string
 import asyncio
 from aiohttp import ClientSession
 
-
 from utils import run_query
 
 read_dir = ["./adjNoun", "./verbNoun"]
@@ -51,10 +50,6 @@ for i, row in enumerate(sources):
 
 print(f'No of Tokens: {len(tokens)}')
 tokens = sorted(tokens)
-# starting_letters = ['w', 'x', 'y', 'z']
-# tokens = [token for token in tokens if str(token).startswith('w') or str(token).startswith('x')
-#           or str(token).startswith('y') or str(token).startswith('z')]
-# print(f'filtered tokens: {len(tokens)}')
 
 
 async def get_responses(tokens):
@@ -63,14 +58,8 @@ async def get_responses(tokens):
         return result
 
 
-# loop = asyncio.get_event_loop()
-# bigrams = loop.run_until_complete(get_responses())
-# loop.close()
-
-
 ptr = 0
 starting_letters = string.ascii_lowercase
-# starting_letters = ['a', 'b']
 bigrams_df = pd.DataFrame()
 loop = asyncio.get_event_loop()
 for starting_letter in starting_letters:
@@ -79,7 +68,6 @@ for starting_letter in starting_letters:
         queried_tokens.append(tokens[ptr])
         ptr += 1
 
-    # bigrams.extend(loop.run_until_complete(get_responses(queried_tokens)))
     bigrams = loop.run_until_complete(get_responses(queried_tokens))
     for bigram in bigrams:
         if bigram and len(bigram):
@@ -92,11 +80,6 @@ bigrams_df = bigrams_df.sort_values(by=[bigrams_df.columns[1], bigrams_df.column
 ptr = 0
 for starting_letter in starting_letters:
     with open(os.path.join(write_dir, 'nn2_'+starting_letter+'.txt'), 'w') as f:
-        # while ptr < len(tokens) and tokens[ptr].startswith(starting_letter):
-        #     if bigrams[ptr] and len(bigrams[ptr]):
-        #         for bigram in bigrams[ptr]:
-        #             f.write('\t'.join([str(i) for i in bigram]))
-        #             f.write('\n')
 
         while ptr < len(bigrams_df) and str(bigrams_df.iloc[ptr, 1]).startswith(starting_letter):
             f.write('\t'.join([str(i) for i in bigrams_df.iloc[ptr]]))
